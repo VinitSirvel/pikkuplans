@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {normalise,parseEspoo,collect} from '../worker/index.js';
+const event={id:'test',name:{en:'Story time'},start_time:'2026-10-30T12:00:00Z',end_time:'2026-10-30T13:00:00Z',location:{address_locality:{en:'Helsinki'}},in_language:[{'@id':'https://api.hel.fi/linkedevents/v1/language/en/'}],offers:[{is_free:true}]};
+assert.equal(normalise(event).lang,'English');assert.equal(normalise(event).price,'Free');
+assert.equal(normalise({...event,in_language:[]}).lang,'Check language');
+assert.equal(normalise({...event,event_status:'EventCancelled'}),null);
+assert.equal(normalise({...event,super_event_type:'recurring'}),null);
+assert.equal(normalise({...event,location:{address_locality:{en:'Tampere'}}}),null);
+const markup=(title,date)=>`<a href="https://tapahtumat.visitespoo.fi/en-FI/page/abc" data-event-id="abc"><h3>${title}<svg></svg></h3><div class="event-date">${date}</div><div class="event-address">Sello, Espoo</div></a>`;
+assert.equal(parseEspoo(markup('Baby café','Wed 28.10.2026 13:00'))[0].start,'2026-10-28T11:00:00.000Z');
+assert.equal(parseEspoo(markup('Baby café','Wed 21.10.2026 13:00'))[0].start,'2026-10-21T10:00:00.000Z');
+assert.equal(parseEspoo(markup('Training for family godparents','Wed 28.10.2026 13:00')).length,0);
+assert.equal(parseEspoo('<html>Source markup changed</html>').length,0);
+const original=globalThis.fetch;globalThis.fetch=async()=>{throw Error('Source outage')};
+const fallback=await collect(new Date('2026-10-26T12:00:00Z'));assert(fallback.events.length>0);assert(fallback.warnings.length===2);assert(fallback.events.every(e=>Date.parse(e.end)>Date.parse('2026-10-26T12:00:00Z')));
+globalThis.fetch=original;
+console.log('Passed: language, cancellation, recurring dates, geography, Finnish DST, source parsing and outage fallback.');

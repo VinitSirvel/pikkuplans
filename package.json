@@ -1,0 +1,10 @@
+{
+  "name": "pikku-plans",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "test": "node scripts/test-events.mjs",
+    "export": "node scripts/export-github-pages.mjs"
+  }
+}
